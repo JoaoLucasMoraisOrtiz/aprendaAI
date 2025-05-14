@@ -43,12 +43,12 @@ entity "Question" as question {
   * updated_at : timestamp
 }
 
-entity "Option" as option {
+entity "Answer" as option {
   * id : int <<PK>>
   --
   * question_id : int <<FK>>
   * content : text
-  * is_correct : boolean
+  * answers : json
   * created_at : timestamp
   * updated_at : timestamp
 }
