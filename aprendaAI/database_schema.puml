@@ -53,13 +53,24 @@ entity "Answer" as option {
   * updated_at : timestamp
 }
 
-entity "Exam" as exam {
+
+entity "Institution" as institution {
   * id : int <<PK>>
   --
   * name : string
   * description : text
+  * type : enum [vestibular, concurso_publico]
+  * created_at : timestamp
+  * updated_at : timestamp
+}
+
+entity "Exam" as exam {
+  * id : int <<PK>>
+  --
+  * institution_id : int <<FK>>
+  * name : string
+  * description : text
   * year : int
-  * institution : string
   * created_at : timestamp
   * updated_at : timestamp
 }
@@ -113,6 +124,7 @@ entity "StudySession" as session {
 
 ' Removido modelo ExamQuestion, pois cada questão pertence a um único exame
 
+
 ' Relacionamentos
 user ||--o{ progress : "tem"
 user ||--o{ answer : "responde"
@@ -130,6 +142,7 @@ question }|--|| exam : "pertence a"
 
 plan ||--o{ session : "contém"
 
+institution ||--o{ exam : "possui"
 exam ||--o{ question : "contém"
 
 @enduml
