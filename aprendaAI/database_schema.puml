@@ -7,7 +7,12 @@ entity "User" as user {
   * name : string
   * email : string
   * password : string
+  * email_verified_at : timestamp
+  * remember_token : string
   * role : enum [student, teacher, admin]
+  * learning_style : string
+  * difficulty_preference : string
+  * metadata : json
   * created_at : timestamp
   * updated_at : timestamp
 }
@@ -17,6 +22,7 @@ entity "Subject" as subject {
   --
   * name : string
   * description : text
+  * is_active : boolean
   * created_at : timestamp
   * updated_at : timestamp
 }
@@ -27,6 +33,11 @@ entity "Topic" as topic {
   * subject_id : int <<FK>>
   * name : string
   * description : text
+  * is_active : boolean
+  * difficulty_level : enum [easy, medium, hard]
+  * order : int
+  * estimated_time_minutes : int
+  * prerequisites : json
   * created_at : timestamp
   * updated_at : timestamp
 }
@@ -35,30 +46,38 @@ entity "Question" as question {
   * id : int <<PK>>
   --
   * topic_id : int <<FK>>
-  * exam_id : int <<FK>>
   * content : text
-  * difficulty : enum [easy, medium, hard]
+  * explanation : text
+  * difficulty_level : enum [easy, medium, hard]
   * type : enum [multiple_choice, true_false, essay]
+  * is_active : boolean
+  * llm_explanation : text
+  * llm_metadata : json
+  * is_llm_generated : boolean
+  * difficulty_score : float
+  * topic_tags : json
   * created_at : timestamp
   * updated_at : timestamp
 }
 
-entity "Answer" as option {
+entity "Answer" as answer {
   * id : int <<PK>>
   --
   * question_id : int <<FK>>
   * content : text
-  * answers : json
+  * is_correct : boolean
+  * feedback : json
+  * metadata : json
   * created_at : timestamp
   * updated_at : timestamp
 }
-
 
 entity "Institution" as institution {
   * id : int <<PK>>
   --
   * name : string
   * description : text
+  * logo_url : string
   * type : enum [vestibular, concurso_publico]
   * created_at : timestamp
   * updated_at : timestamp
@@ -71,6 +90,7 @@ entity "Exam" as exam {
   * name : string
   * description : text
   * year : int
+  * date : date
   * created_at : timestamp
   * updated_at : timestamp
 }
@@ -81,12 +101,19 @@ entity "UserProgress" as progress {
   * user_id : int <<FK>>
   * topic_id : int <<FK>>
   * proficiency_level : float
+  * mastery_status : enum [easy, medium, hard]
+  * questions_answered : int
+  * questions_correct : int
+  * last_activity_date : date
   * last_interaction : timestamp
+  * adaptive_recommendations : json
+  * focus_areas : json
+  * learning_streak : int
   * created_at : timestamp
   * updated_at : timestamp
 }
 
-entity "UserAnswer" as answer {
+entity "UserAnswer" as user_answer {
   * id : int <<PK>>
   --
   * user_id : int <<FK>>
@@ -102,10 +129,15 @@ entity "StudyPlan" as plan {
   * id : int <<PK>>
   --
   * user_id : int <<FK>>
-  * name : string
+  * title : string
+  * goal : text
   * description : text
+  * status : enum [active, completed, abandoned]
   * start_date : date
   * end_date : date
+  * metadata : json
+  * is_adaptive : boolean
+  * priority : enum [low, medium, high]
   * created_at : timestamp
   * updated_at : timestamp
 }
@@ -117,18 +149,68 @@ entity "StudySession" as session {
   * topic_id : int <<FK>>
   * duration : int
   * scheduled_date : date
+  * actual_date : date
   * status : enum [pending, completed, skipped]
+  * is_completed : boolean
+  * notes : text
+  * resources : json
   * created_at : timestamp
   * updated_at : timestamp
 }
 
-' Removido modelo ExamQuestion, pois cada questão pertence a um único exame
+entity "LLMInteraction" as llm {
+  * id : int <<PK>>
+  --
+  * user_id : int <<FK>>
+  * interaction_type : enum [explanation, question, study_plan, recommendation, performance_analysis, performance_analysis_skipped]
+  * prompt : text
+  * response : text
+  * model_used : string
+  * tokens_used : int
+  * feedback_rating : int
+  * status : enum [success, failed, processing]
+  * metadata : json
+  * created_at : timestamp
+  * updated_at : timestamp
+}
 
+entity "ExplanationCache" as explanation_cache {
+  * id : int <<PK>>
+  --
+  * question_id : int <<FK>>
+  * explanation : text
+  * difficulty_level : string
+  * is_personalized : boolean
+  * created_at : timestamp
+  * updated_at : timestamp
+}
+
+entity "ExamQuestion" as exam_question {
+  * id : int <<PK>>
+  --
+  * exam_id : int <<FK>>
+  * question_id : int <<FK>>
+  * created_at : timestamp
+  * updated_at : timestamp
+}
+
+entity "LearningInsight" as learning_insight {
+  * id : int <<PK>>
+  --
+  * user_id : int <<FK>>
+  * insight_type : string
+  * data : json
+  * generated_at : timestamp
+  * created_at : timestamp
+  * updated_at : timestamp
+}
 
 ' Relacionamentos
 user ||--o{ progress : "tem"
-user ||--o{ answer : "responde"
+user ||--o{ user_answer : "responde"
 user ||--o{ plan : "possui"
+user ||--o{ llm : "interage"
+user ||--o{ learning_insight : "possui"
 
 subject ||--o{ topic : "contém"
 
@@ -136,13 +218,15 @@ topic ||--o{ question : "contém"
 topic ||--o{ session : "possui"
 topic ||--o{ progress : "relacionado a"
 
-question ||--o{ option : "tem"
-question ||--o{ answer : "respondida por"
-question }|--|| exam : "pertence a"
+question ||--o{ answer : "tem"
+question ||--o{ user_answer : "respondida por"
+question ||--o{ explanation_cache : "explicações cacheadas"
 
 plan ||--o{ session : "contém"
 
 institution ||--o{ exam : "possui"
 exam ||--o{ question : "contém"
+exam ||--o{ exam_question : "possui"
+question ||--o{ exam_question : "pertence a"
 
 @enduml
